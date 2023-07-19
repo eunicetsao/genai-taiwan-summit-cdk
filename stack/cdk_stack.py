@@ -482,6 +482,7 @@ class WorkshopStack(Stack):
             notebook_instance_name=notebook_instance_name,
             role_arn=notebook_role_arn,
             platform_identifier="notebook-al2-v1",
+            additional_code_repositories=["https://github.com/eunicetsao/genai-talk-to-your-data-with-large-language-model-notebook"]
         )
 
         CfnOutput(
