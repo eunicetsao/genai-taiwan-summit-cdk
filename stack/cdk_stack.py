@@ -444,7 +444,7 @@ class WorkshopStack(Stack):
         data_bucket = s3.Bucket(
             self,
             "data",
-            bucket_name=self.prefix,
+            #bucket_name=self.prefix,
             removal_policy=RemovalPolicy.RETAIN,
             encryption=s3.BucketEncryption.S3_MANAGED,
             block_public_access=s3.BlockPublicAccess.BLOCK_ALL,
