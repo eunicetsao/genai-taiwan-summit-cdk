@@ -94,6 +94,8 @@ class WorkshopStack(Stack):
     def __init__(self, scope: Construct, construct_id: str, **kwargs) -> None:
         super().__init__(scope, construct_id, **kwargs)
 
+        self.prefix = "genai-text-to-sql-workshop"
+
         self.vpc_stack = VpcStack(self)
 
         s3_bucket = self._create_data_bucket()
@@ -119,19 +121,18 @@ class WorkshopStack(Stack):
         self._create_langchain_function(s3_bucket)
 
     def _prepare_athena_data(self, s3_bucket):
-        prefix = "genai-text-to-sql-workshop"
         glue_db_name = aws_cdk.CfnParameter(
             self,
-            f"{prefix}DbName",
+            f"{self.prefix}DbName",
             type="String",
             description="Demo Database for GenAI text-to-sql workshop",
             allowed_pattern="[\w-]+",
-            default=prefix,
+            default=self.prefix,
         )
 
         glue_table_name = aws_cdk.CfnParameter(
             self,
-            f"{prefix}TableName",
+            f"{self.prefix}TableName",
             type="String",
             description="Demo table for GenAI text-to-sql workshop",
             allowed_pattern="[\w-]+",
@@ -142,7 +143,7 @@ class WorkshopStack(Stack):
 
         glue_database = glue.CfnDatabase(
             self,
-            id=prefix,
+            id=self.prefix,
             catalog_id=aws_cdk.Aws.ACCOUNT_ID,
             database_input=glue.CfnDatabase.DatabaseInputProperty(
                 description=f"Demo device Glue database",
@@ -232,6 +233,7 @@ class WorkshopStack(Stack):
                 "athena:GetQueryResults",
                 "athena:ListTableMetadata",
                 "glue:GetTables",
+                "glue:GetTable",
                 "athena:GetTableMetadata",
                 "logs:CreateLogStream",
                 "logs:PutLogEvents",
@@ -276,6 +278,7 @@ class WorkshopStack(Stack):
                 "athena:GetQueryResults",
                 "athena:ListTableMetadata",
                 "glue:GetTables",
+                "glue:GetTable",
                 "athena:GetTableMetadata",
                 "logs:CreateLogStream",
                 "logs:PutLogEvents",
@@ -441,6 +444,7 @@ class WorkshopStack(Stack):
         data_bucket = s3.Bucket(
             self,
             "data",
+            bucket_name=self.prefix,
             removal_policy=RemovalPolicy.RETAIN,
             encryption=s3.BucketEncryption.S3_MANAGED,
             block_public_access=s3.BlockPublicAccess.BLOCK_ALL,
@@ -482,6 +486,7 @@ class WorkshopStack(Stack):
             notebook_instance_name=notebook_instance_name,
             role_arn=notebook_role_arn,
             platform_identifier="notebook-al2-v1",
+            additional_code_repositories=["https://github.com/eunicetsao/genai-talk-to-your-data-with-large-language-model-notebook"]
         )
 
         CfnOutput(
