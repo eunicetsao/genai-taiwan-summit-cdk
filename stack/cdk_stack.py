@@ -60,10 +60,12 @@ class VpcStack(NestedStack):
 
         return subnets.subnet_ids
 
-    def get_public_subnets(self):
-        return ec2.SubnetSelection(
-            subnets=self.vpc.select_subnets(subnet_type=ec2.SubnetType.PUBLIC).subnets
+    def get_public_subnet_ids(self):
+        subnets = self.vpc.select_subnets(
+            subnet_type=ec2.SubnetType.PUBLIC
         )
+
+        return subnets.subnet_ids
 
     def get_vpc(self):
         return self.vpc
@@ -220,9 +222,6 @@ class WorkshopStack(Stack):
             retry_attempts=0,
             timeout=Duration.minutes(1),
             layers=[self.langchain_layer],
-            # role=lambda_role,
-            # vpc=self.vpc_stack.get_vpc(),
-            # vpc_subnets=self.vpc_stack.get_public_subnets(),
             log_retention=logs.RetentionDays.THREE_DAYS,
             environment={
                 "ATHENA_BUCKET": s3_bucket.bucket_name,
@@ -383,6 +382,7 @@ class WorkshopStack(Stack):
                                 "sagemaker:CreateModel",
                                 "sagemaker:CreateEndpointConfig",
                                 "sagemaker:CreateEndpoint",
+                                "sagemaker:CreateApp",
                                 "sagemaker:DeleteModel",
                                 "sagemaker:DeleteEndpointConfig",
                                 "sagemaker:DeleteEndpoint",
@@ -505,18 +505,6 @@ class WorkshopStack(Stack):
 
     def _create_sagemaker_studio(self, notebook_role_arn):
 
-        # sagemaker_studio_execution_role = iam.Role(
-        #     self,
-        #     "SagemakerStudioExecutionRole",
-        #     assumed_by=iam.ServicePrincipal("sagemaker.amazonaws.com"),
-        #     managed_policies=[
-        #         iam.ManagedPolicy.from_aws_managed_policy_name(
-        #             # Warning: might need to scope down AmazonSageMakerFullAccess permissions as required for improved security.
-        #             "AmazonSageMakerFullAccess"
-        #         )
-        #     ],
-        # )
-
         sagemaker_studio_domain = sagemaker.CfnDomain(
             self,
             "SageMakerStudioDomain",
@@ -539,15 +527,14 @@ class WorkshopStack(Stack):
                         ),
                     ),
                 ),
-                #security_groups=[standard_security_group.security_group_id],
                 sharing_settings=sagemaker.CfnDomain.SharingSettingsProperty(
                     notebook_output_option="Disabled"
                 ),
             ),
             domain_name="SageMakerStudioDomain",
-            subnet_ids=self.vpc_stack.get_public_subnets(),
-            vpc_id=self.vpc_stack.get_vpc(),
-            app_network_access_type="VpcOnly",
+            vpc_id=self.vpc_stack.get_vpc().vpc_id,
+            subnet_ids=self.vpc_stack.get_public_subnet_ids(),
+            app_network_access_type="PublicInternetOnly",
         )
 
         sagemaker.CfnUserProfile(
