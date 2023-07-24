@@ -378,6 +378,7 @@ class WorkshopStack(Stack):
                                 "sagemaker:DescribeModel",
                                 "sagemaker:InvokeEndpoint",
                                 "sagemaker:ListTags",
+                                "sagemaker:ListMonitoringSchedules",
                                 "sagemaker:DescribeEndpoint",
                                 "sagemaker:CreateModel",
                                 "sagemaker:CreateEndpointConfig",
@@ -515,7 +516,7 @@ class WorkshopStack(Stack):
                     default_resource_spec=sagemaker.CfnDomain.ResourceSpecProperty(
                         instance_type="system",
                         sage_maker_image_arn=get_sagemaker_image_arn(
-                            JUPYTER_SERVER_APP_IMAGE_NAME, self.region
+                            JUPYTER_SERVER_APP_IMAGE_NAME, "us-east-1" # self.region
                         ),
                     )
                 ),
@@ -523,7 +524,7 @@ class WorkshopStack(Stack):
                     default_resource_spec=sagemaker.CfnDomain.ResourceSpecProperty(
                         instance_type="ml.t3.medium",
                         sage_maker_image_arn=get_sagemaker_image_arn(
-                            KERNEL_GATEWAY_APP_IMAGE_NAME, self.region
+                            KERNEL_GATEWAY_APP_IMAGE_NAME, "us-east-1" # self.region
                         ),
                     ),
                 ),
