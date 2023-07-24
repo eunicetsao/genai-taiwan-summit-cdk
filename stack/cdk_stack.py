@@ -508,7 +508,7 @@ class WorkshopStack(Stack):
 
         sagemaker_studio_domain = sagemaker.CfnDomain(
             self,
-            "SageMakerStudioDomain",
+            "SageMakerModelHub",
             auth_mode="IAM",
             default_user_settings=sagemaker.CfnDomain.UserSettingsProperty(
                 execution_role=notebook_role_arn,
@@ -532,7 +532,7 @@ class WorkshopStack(Stack):
                     notebook_output_option="Disabled"
                 ),
             ),
-            domain_name="SageMakerStudioDomain",
+            domain_name="SageMakerModelHub",
             vpc_id=self.vpc_stack.get_vpc().vpc_id,
             subnet_ids=self.vpc_stack.get_public_subnet_ids(),
             app_network_access_type="PublicInternetOnly",
