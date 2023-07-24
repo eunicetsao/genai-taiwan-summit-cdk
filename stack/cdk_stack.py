@@ -540,9 +540,9 @@ class WorkshopStack(Stack):
 
         sagemaker.CfnUserProfile(
                 self,
-                "SageMakerStudioUserProfile_ai-artist",
+                "SageMakerStudioUserProfile_ModelCreator",
                 domain_id=sagemaker_studio_domain.attr_domain_id,
-                user_profile_name="ai-artist"
+                user_profile_name="ModelCreator"
         )
 
         return sagemaker_studio_domain
