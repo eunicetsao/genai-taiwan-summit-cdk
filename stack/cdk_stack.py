@@ -16,6 +16,10 @@ from aws_cdk import (
 )
 from constructs import Construct
 
+from stack.helper import get_sagemaker_image_arn
+
+JUPYTER_SERVER_APP_IMAGE_NAME = "jupyter-server-3"
+KERNEL_GATEWAY_APP_IMAGE_NAME = "datascience-2.0"
 
 class VpcStack(NestedStack):
     def __init__(self, scope) -> None:
@@ -108,17 +112,19 @@ class WorkshopStack(Stack):
             destination_key_prefix="samples",
         )
 
-        self._prepare_athena_data(s3_bucket)
-
         sagemaker_role = self._create_notebook_role(s3_bucket)
 
-        self.create_sagemaker_notebook(sagemaker_role.role_arn)
+        self._prepare_athena_data(s3_bucket)
 
         self.langchain_layer = self._prepare_lambda_langchain_layer()
 
         self._create_custom_langchain_function(s3_bucket)
 
         self._create_langchain_function(s3_bucket)
+
+        self._create_sagemaker_notebook(sagemaker_role.role_arn)
+
+        self._create_sagemaker_studio(sagemaker_role.role_arn)
 
     def _prepare_athena_data(self, s3_bucket):
         glue_db_name = aws_cdk.CfnParameter(
@@ -467,7 +473,7 @@ class WorkshopStack(Stack):
         CfnOutput(self, "DataBucketName", value=data_bucket.bucket_name)
         return data_bucket
 
-    def create_sagemaker_notebook(self, notebook_role_arn):
+    def _create_sagemaker_notebook(self, notebook_role_arn):
         notebook_instance_name = "WorkshopNotebook"
 
         sagemaker_key = kms.Key(
@@ -496,3 +502,59 @@ class WorkshopStack(Stack):
         )
 
         return sagemaker_jupyter
+
+    def _create_sagemaker_studio(self, notebook_role_arn):
+
+        # sagemaker_studio_execution_role = iam.Role(
+        #     self,
+        #     "SagemakerStudioExecutionRole",
+        #     assumed_by=iam.ServicePrincipal("sagemaker.amazonaws.com"),
+        #     managed_policies=[
+        #         iam.ManagedPolicy.from_aws_managed_policy_name(
+        #             # Warning: might need to scope down AmazonSageMakerFullAccess permissions as required for improved security.
+        #             "AmazonSageMakerFullAccess"
+        #         )
+        #     ],
+        # )
+
+        sagemaker_studio_domain = sagemaker.CfnDomain(
+            self,
+            "SageMakerStudioDomain",
+            auth_mode="IAM",
+            default_user_settings=sagemaker.CfnDomain.UserSettingsProperty(
+                execution_role=notebook_role_arn,
+                jupyter_server_app_settings=sagemaker.CfnDomain.JupyterServerAppSettingsProperty(
+                    default_resource_spec=sagemaker.CfnDomain.ResourceSpecProperty(
+                        instance_type="system",
+                        sage_maker_image_arn=get_sagemaker_image_arn(
+                            JUPYTER_SERVER_APP_IMAGE_NAME, self.region
+                        ),
+                    )
+                ),
+                kernel_gateway_app_settings=sagemaker.CfnDomain.KernelGatewayAppSettingsProperty(
+                    default_resource_spec=sagemaker.CfnDomain.ResourceSpecProperty(
+                        instance_type="ml.t3.medium",
+                        sage_maker_image_arn=get_sagemaker_image_arn(
+                            KERNEL_GATEWAY_APP_IMAGE_NAME, self.region
+                        ),
+                    ),
+                ),
+                #security_groups=[standard_security_group.security_group_id],
+                sharing_settings=sagemaker.CfnDomain.SharingSettingsProperty(
+                    notebook_output_option="Disabled"
+                ),
+            ),
+            domain_name="SageMakerStudioDomain",
+            subnet_ids=self.vpc_stack.get_public_subnets(),
+            vpc_id=self.vpc_stack.get_vpc(),
+            app_network_access_type="VpcOnly",
+        )
+
+        sagemaker.CfnUserProfile(
+                self,
+                "SageMakerStudioUserProfile_ai-artist",
+                domain_id=sagemaker_studio_domain.attr_domain_id,
+                user_profile_name="ai-artist"
+        )
+
+        return sagemaker_studio_domain
