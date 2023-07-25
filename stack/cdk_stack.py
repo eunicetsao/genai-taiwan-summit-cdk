@@ -378,6 +378,7 @@ class WorkshopStack(Stack):
                                 "sagemaker:DescribeModel",
                                 "sagemaker:InvokeEndpoint",
                                 "sagemaker:ListTags",
+                                "sagemaker:ListEndpoints",
                                 "sagemaker:ListMonitoringSchedules",
                                 "sagemaker:DescribeEndpoint",
                                 "sagemaker:CreateModel",
